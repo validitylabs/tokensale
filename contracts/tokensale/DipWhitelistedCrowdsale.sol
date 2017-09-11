@@ -30,14 +30,12 @@ contract DipWhitelistedCrowdsale is Crowdsale, Ownable {
     uint256 otherAllowance;
     uint256 contributionAmount;
     uint256 tokensIssued;
+    uint256 index;
   }
 
-  // list of addresses that can purchase in priorityPass phase  
-  mapping (address => ContributorData) public contributorList;
-  // counter for contributors
-  uint256 nextContributorIndex;
-  // ordered list to make it accessible
-  mapping (uint256 => address) contributorIndexes;
+  // list of addresses that can purchase in priorityPass phase
+  mapping (address => ContributorData) private contributorList;
+  address[] private contributorIndexes;
 
   event DipTgeStarted(uint256 _blockNumber);
   event OpenPpStarted(uint256 _blockNumber);
@@ -71,29 +69,154 @@ contract DipWhitelistedCrowdsale is Crowdsale, Ownable {
     hardCap2 = _hardCap2;
   }
 
+  /*
+   * @dev Check if address in the list of contributors
+   * @param address _contributorAddr    Address to check
+   * @return bool _isContributor        True if contributor, false otherwise
+   */
+  function isContributor(address _contributorAddr)
+    public constant returns (bool _isContributor)
+  {
+    if (contributorIndexes.length == 0 ) {
+        return false;
+    }
+    return (contributorIndexes[contributorList[_contributorAddr].index] == _contributorAddr);
+  }
+
+  /*
+   * @dev Add to the list of contributors
+   * @param address _addr                   Address
+   * @param uint256 _priorityPassAllowance  Priority pass allowance
+   * @param uint256 _otherAllowance         Other allowance
+   * @return uint256 _index                 Contributor's index
+   */
+  function addContributor(
+      address _addr,
+      uint256 _priorityPassAllowance,
+      uint256 _otherAllowance)
+      onlyOwner public returns (uint256 _index)
+  {
+    require(!isContributor(_addr));
+
+    contributorList[_addr].priorityPassAllowance = _priorityPassAllowance;
+    contributorList[_addr].otherAllowance = _otherAllowance;
+    contributorList[_addr].index = contributorIndexes.push(_addr) - 1;
+
+    _index = contributorIndexes.length - 1;
+  }
+
+  /*
+   * @dev Edit contributor data
+   * @param address _addr                   Address
+   * @param uint256 _priorityPassAllowance  Priority pass allowance
+   * @param uint256 _otherAllowance         Other allowance
+   * @return bool _success                  True if succeed
+   */
+  function editContributor(
+      address _addr,
+      uint256 _priorityPassAllowance,
+      uint256 _otherAllowance)
+      onlyOwner public returns (bool _success)
+  {
+    require(isContributor(_addr));
+
+    contributorList[_addr].priorityPassAllowance = _priorityPassAllowance;
+    contributorList[_addr].otherAllowance = _otherAllowance;
+
+    _success = true;
+  }
+
+  /*
+   * @dev Delete contributor
+   * @param address _addr   Contributor's address
+   */
+  function deleteContributor(address _addr)
+    onlyOwner public returns (uint256 _index)
+  {
+      require(isContributor(_addr));
+
+      uint256 contributorToDelete = contributorList[_addr].index;
+      address lastKey = contributorIndexes[contributorIndexes.length - 1];
+
+      contributorIndexes[contributorToDelete] = lastKey;
+      contributorList[lastKey].index = contributorToDelete;
+      contributorIndexes.length--;
+
+      _index = contributorToDelete;
+  }
+
   /**
-   * Push contributor data to the contract before the crowdsale so that they are eligible for priorit pass
-   * 
+   * @dev Push contributor data to the contract before the crowdsale so that they are eligible for priorit pass
+   * @param address[] _contributorAddresses         List of addresses
+   * @param uint256[] _contributorPPAllowances      List of priority pass allowances
+   * @param uint256[] _contributorOtherAllowance    List of other allowances
    */
   function editContributors(
-    address[] _contributorAddresses, 
-    uint256[] _contributorPPAllowances, 
-    uint256[] _contributorOtherAllowance) 
-    onlyOwner 
-    {
-    
+      address[] _contributorAddresses,
+      uint256[] _contributorPPAllowances,
+      uint256[] _contributorOtherAllowance)
+      onlyOwner public
+  {
     require(
-      _contributorAddresses.length == _contributorPPAllowances.length && 
+      _contributorAddresses.length == _contributorPPAllowances.length &&
       _contributorAddresses.length == _contributorOtherAllowance.length
-      ); // Check if input data is consistent
+    ); // Check if input data is consistent
 
-    for(uint cnt = 0; cnt < _contributorAddresses.length; cnt++){
-      contributorList[_contributorAddresses[cnt]].priorityPassAllowance = _contributorPPAllowances[cnt];
-      contributorList[_contributorAddresses[cnt]].otherAllowance = _contributorOtherAllowance[cnt];
-      // TODO: Fix this! 
-      contributorIndexes[nextContributorIndex] = _contributorAddresses[cnt];
-      nextContributorIndex++;
+    for (uint256 cnt = 0; cnt < _contributorAddresses.length; cnt++) {
+        if (isContributor(_contributorAddresses[cnt])) {
+            editContributor(
+                _contributorAddresses[cnt],
+                _contributorPPAllowances[cnt],
+                _contributorOtherAllowance[cnt]
+            );
+        } else {
+            addContributor(
+                _contributorAddresses[cnt],
+                _contributorPPAllowances[cnt],
+                _contributorOtherAllowance[cnt]
+            );
+        }
     }
+  }
+
+  /*
+   * @dev Get contributors count
+   * @return uint256 _count     Contributors count
+   */
+  function getContributorsCount() constant public returns (uint256 _count) {
+      _count = contributorIndexes.length;
+  }
+
+  /*
+   * @dev Get contributor by address
+   * @param address _addr   Address
+   * @return                Contributor's data
+   */
+  function getContributor(address _addr) constant public returns (
+    uint256 _priorityPassAllowance,
+    uint256 _otherAllowance,
+    uint256 _contributionAmount,
+    uint256 _tokensIssued,
+    uint256 _index)
+  {
+      require(isContributor(_addr));
+
+      return (
+          contributorList[_addr].priorityPassAllowance,
+          contributorList[_addr].otherAllowance,
+          contributorList[_addr].contributionAmount,
+          contributorList[_addr].tokensIssued,
+          contributorList[_addr].index
+      );
+  }
+
+  /*
+   * @dev Get contributor at specified index
+   * @param uint256 _index                  Contributor's index
+   * @return address _contributorsAddress   Contributor's address
+   */
+  function getContributorAtIndex(uint256 _index) constant public returns (address _contributorAddress) {
+      _contributorAddress = contributorIndexes[_index];
   }
 
   /**
