@@ -2,7 +2,7 @@
   "name": "etherisc-tge",
   "version": "0.1.0",
   "engines": {
-    "node": ">=9.0.0"
+    "node": ">=8.0.0"
   },
   "config": {
     "solidity-compiler": "0.4.24"

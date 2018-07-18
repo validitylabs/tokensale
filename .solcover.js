@@ -13,7 +13,8 @@ testrpc = '-p 8555 '
 module.exports = {
     port: 8555,
     testrpcOptions: testrpc,
+    copyPackages: ['zeppelin-solidity'],
     testCommand: 'npm run test',
     //norpc: true,
-    copyNodeModules: true,
+    copyNodeModules: false,
 };
