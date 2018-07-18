@@ -3,8 +3,6 @@
 npm-debug.log
 .idea
 node_modules
-migrations
-test
 .node-xmlhttprequest-*
 /lint-sol.out
 ganache-output.log
