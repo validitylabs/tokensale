@@ -5,223 +5,66 @@
  * @copyright 2017 Etherisc GmbH
  */
 
-pragma solidity ^0.4.11;
+pragma solidity 0.4.24;
+
 
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 import 'zeppelin-solidity/contracts/crowdsale/Crowdsale.sol';
+import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
 
-contract DipWhitelistedCrowdsale is Crowdsale, Ownable {
-  
+contract DipWhitelistedCrowdsale is Ownable {
   using SafeMath for uint256;
 
-  enum state { pendingStart, priorityPass, openedPriorityPass, crowdsale, crowdsaleEnded }
-
-  uint256 public startOpenPpTime;
-  uint256 public startPublicTime;
-  uint256 public minCap;
-  uint256 public hardCap1;
-  uint256 public hardCap2;
-
-  state public crowdsaleState = state.pendingStart;
-
   struct ContributorData {
-    uint256 priorityPassAllowance;
-    uint256 otherAllowance;
+    uint256 allowance;
     uint256 contributionAmount;
     uint256 tokensIssued;
+    bool airdrop;
+    uint256 bonus;        // 0 == 0%, 4 == 25%, 10 == 10%
+    uint256 lockupPeriod; // 0, 1 or 2 (years)
   }
 
-  // list of addresses that can purchase in priorityPass phase  
   mapping (address => ContributorData) public contributorList;
 
-  event DipTgeStarted(uint256 _time);
-  event OpenPpStarted(uint256 _time);
-  event PublicStarted(uint256 _time);
-  event MinCapReached(uint256 _time);
-  event HardCap1Reached(uint256 _time);
-  event HardCap2Reached(uint256 _time);
-  event DipTgeEnded(uint256 _time);
-  event Whitelisted(address indexed _contributor, uint256 _ppAllowance, uint256 _otherAllowance);
-
+  event Whitelisted(address indexed _contributor, uint256 _allowance, bool _airdrop, uint256 _bonus, uint256 _lockupPeriod);
 
   /**
-   * Constructor
-   * @param _startOpenPpTime  starting Time for open PriorityPass phase
-   * @param _startPublicTime  starting Time for public phase
-   * @param _minCap           minimum goal (only info)
-   * @param _hardCap1         hardcap for priority phase
-   * @param _hardCap2         hardcap overall
-   */
-  
-  function DipWhitelistedCrowdsale (
-    uint256 _startOpenPpTime,
-    uint256 _startPublicTime, 
-    uint256 _minCap,
-    uint256 _hardCap1, 
-    uint256 _hardCap2
-    ) public
-  {
-    startOpenPpTime = _startOpenPpTime;
-    startPublicTime = _startPublicTime;
-    minCap = _minCap;
-    hardCap1 = _hardCap1;
-    hardCap2 = _hardCap2;
-  }
-
-  /**
-   * Push contributor data to the contract before the crowdsale so that they are eligible for priorit pass
-   * 
+   * Push contributor data to the contract before the crowdsale
    */
   function editContributors (
-    address[] _contributorAddresses, 
-    uint256[] _contributorPPAllowances, 
-    uint256[] _contributorOtherAllowance
-    ) public 
-    onlyOwner 
-    {
-    
+    address[] _contributorAddresses,
+    uint256[] _contributorAllowance,
+    bool[] _airdrop,
+    uint256[] _bonus,
+    uint256[] _lockupPeriod
+  ) onlyOwner public {
+    // Check if input data is consistent
     require(
-      _contributorAddresses.length == _contributorPPAllowances.length && 
-      _contributorAddresses.length == _contributorOtherAllowance.length
-      ); // Check if input data is consistent
+      _contributorAddresses.length == _contributorAllowance.length &&
+      _contributorAddresses.length == _airdrop.length &&
+      _contributorAddresses.length == _bonus.length &&
+      _contributorAddresses.length == _lockupPeriod.length
+    );
 
-    for(uint cnt = 0; cnt < _contributorAddresses.length; cnt = cnt.add(1)){
-      contributorList[_contributorAddresses[cnt]].priorityPassAllowance = _contributorPPAllowances[cnt];
-      contributorList[_contributorAddresses[cnt]].otherAllowance = _contributorOtherAllowance[cnt];
-      Whitelisted(_contributorAddresses[cnt], _contributorPPAllowances[cnt], _contributorOtherAllowance[cnt]);
+    for (uint256 cnt = 0; cnt < _contributorAddresses.length; cnt = cnt.add(1)) {
+      require(_bonus[cnt] == 0 || _bonus[cnt] == 4 || _bonus[cnt] == 10);
+      require(_lockupPeriod[cnt] <= 2);
+
+      address contributor = _contributorAddresses[cnt];
+      contributorList[contributor].allowance = _contributorAllowance[cnt];
+      contributorList[contributor].airdrop = _airdrop[cnt];
+      contributorList[contributor].bonus = _bonus[cnt];
+      contributorList[contributor].lockupPeriod = _lockupPeriod[cnt];
+
+      emit Whitelisted(
+        _contributorAddresses[cnt],
+        _contributorAllowance[cnt],
+        _airdrop[cnt],
+        _bonus[cnt],
+        _lockupPeriod[cnt]
+      );
     }
-  }
-
-  /**
-   * Calculate the maximum remaining contribution allowed for an address
-   * @param  _contributor the address of the contributor
-   * @return maxContribution maximum allowed amount in wei
-   */
-  function calculateMaxContribution(address _contributor) public constant returns (uint256) {
-
-    uint256 maxContrib;
-    if (crowdsaleState == state.pendingStart) {
-      maxContrib = 0;
-    } else if (crowdsaleState == state.priorityPass) {
-      maxContrib = 
-        (contributorList[_contributor].priorityPassAllowance.add(
-          contributorList[_contributor].otherAllowance)).sub( 
-            contributorList[_contributor].contributionAmount);
-      if (maxContrib > hardCap1 - weiRaised){
-        maxContrib = hardCap1.sub(weiRaised);
-      }
-    } else if (crowdsaleState == state.openedPriorityPass) {
-      if (contributorList[_contributor].priorityPassAllowance.add( 
-            contributorList[_contributor].otherAllowance) > 0) {
-        maxContrib = hardCap1.sub(weiRaised);
-      } else {
-        maxContrib = 0;
-      }
-    } else if (crowdsaleState == state.crowdsale) {
-      maxContrib = hardCap2.sub(weiRaised);
-    } else {
-      maxContrib = 0;
-    } 
-    return maxContrib;
-  }
-
-  /**
-   * Set the current state of the crowdsale.
-   */
-  function setCrowdsaleState() public {
-
-    if (weiRaised >= hardCap2 && crowdsaleState != state.crowdsaleEnded) {
-
-      crowdsaleState = state.crowdsaleEnded;
-      HardCap2Reached(now);
-      DipTgeEnded(now);
-
-    } else if (
-      now >= startTime &&
-      now < startOpenPpTime && 
-      crowdsaleState != state.priorityPass
-      ) {
-
-      crowdsaleState = state.priorityPass;
-      DipTgeStarted(now);
-
-    } else if (
-      now >= startOpenPpTime && 
-      now < startPublicTime &&
-      crowdsaleState != state.openedPriorityPass
-      ) {
-
-      crowdsaleState = state.openedPriorityPass;
-      OpenPpStarted(now);
-
-    } else if (
-      now >= startPublicTime && 
-      now <= endTime &&
-      crowdsaleState != state.crowdsale
-      ) {                     
-
-      crowdsaleState = state.crowdsale;
-      PublicStarted(now);
-
-    } else if (
-        crowdsaleState != state.crowdsaleEnded && 
-        now > endTime
-        ) {
-
-        crowdsaleState = state.crowdsaleEnded;
-        DipTgeEnded(now);
-        
-    }
-  }
-
-  /**
-   * The token buying function.
-   * @param  _beneficiary  receiver of tokens.
-   */
-  function buyTokens(address _beneficiary) public payable {
-    require(_beneficiary != 0x0);
-    require(validPurchase());
-
-    uint256 weiAmount = msg.value;
-    uint256 maxContrib = calculateMaxContribution(_beneficiary);
-    uint256 refund;
-
-    if (weiAmount > maxContrib) {
-      refund = weiAmount.sub(maxContrib);
-      weiAmount = maxContrib;
-    }
-
-    if (weiAmount > 0) {
-      // calculate token amount to be created
-      uint256 tokens = weiAmount.mul(rate);
-
-      // update state
-      weiRaised = weiRaised.add(weiAmount);
-      if (weiRaised > minCap)
-        MinCapReached(now);
-
-      if (!token.mint(_beneficiary, tokens)) revert();
-      TokenPurchase(msg.sender, _beneficiary, weiAmount, tokens);
-
-      contributorList[_beneficiary].contributionAmount = contributorList[_beneficiary].contributionAmount.add(weiAmount);
-      contributorList[_beneficiary].tokensIssued = contributorList[_beneficiary].tokensIssued.add(tokens);
-
-      wallet.transfer(weiAmount);
-    }
-
-    if (refund != 0) msg.sender.transfer(refund);
-
-  }
-
-
-  /**
-   * Returns true if a purchase is valid, i.e. there is *some* allowed amount remaining for the contributor
-   * @return bool
-   */
-  function validPurchase() internal constant returns (bool) {
-    setCrowdsaleState();
-    return super.validPurchase();
   }
 
 }

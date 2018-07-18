@@ -3,8 +3,10 @@
 npm-debug.log
 .idea
 node_modules
-build
 migrations
 test
 .node-xmlhttprequest-*
 /lint-sol.out
+ganache-output.log
+package-lock.json
+build
