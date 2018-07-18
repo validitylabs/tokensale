@@ -8,9 +8,14 @@ Functional specification is at https://github.com/etherisc/tokensale/blob/master
 
 ## To Be Reviewed:
 * RSC Converstion Smart Contract
+  * `RSCConvesrion.sol` under `./contracts/rscconversion/`
 
 ## Review the above listed smart contracts for the following:
 * Best Practices
 * Styling
 * Test Cases
 * Known Security Risks & Vulnerabilities
+
+## Specifications:
+* See `RSC Specs.MD`
+* https://docs.google.com/document/d/1ny0HWbsPdqjSOmfxIKCI3RLYSoKl9VU5bbqwTgE6ciQ/edit?ts=5b4ef663#

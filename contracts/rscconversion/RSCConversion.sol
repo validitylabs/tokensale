@@ -5,6 +5,11 @@
  * @copyright 2017 Etherisc GmbH
  */
 
+/**
+ * Validity Labs - Independent Code Review
+ * In
+ */
+
 pragma solidity 0.4.24;
 
 import "../token/DipToken.sol";

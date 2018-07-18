@@ -9,7 +9,6 @@ testrpc = '-p 8555 '
 
 // console.log('Testrpc options: ', testrpc);
 
-
 module.exports = {
     port: 8555,
     testrpcOptions: testrpc,
