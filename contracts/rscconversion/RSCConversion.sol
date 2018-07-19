@@ -7,7 +7,6 @@
 
 /**
  * Validity Labs - Independent Code Review
- * In
  */
 
 pragma solidity 0.4.24;
@@ -23,6 +22,7 @@ contract RSCConversion is Ownable {
 
   using SafeMath for *;
 
+  // should be public
   DipToken DIP;
   DipTge DIP_TGE;
   ERC20 RSC;
@@ -30,7 +30,8 @@ contract RSCConversion is Ownable {
 
   event Conversion(uint256 _rscAmount, uint256 _dipAmount, uint256 _bonus);
 
-  // does not check for address 0x0 - is possible to deploy address 0x0?
+  // does not check for address 0x0
+  // DIP should be casted as ERC20
   constructor (
       address _dipToken,
       address _dipTge,
@@ -61,11 +62,13 @@ contract RSCConversion is Ownable {
     require(RSC.transferFrom(msg.sender, DIP_Pool, _rscAmount));
 
     // conversion factor 10:32 ratio as listed in the spec document
+    // magic constants
     dipAmount = _rscAmount.mul(10).div(32);
 
     // bonus calculation - requires someone with a bonus amount to have lockupPeriod == 1 else will revert the tx
     if (bonus > 0) {
       assert(lockupPeriod == 1);
+      // magic constant
       dipAmount = dipAmount.add(dipAmount.mul(100).div(bonus));
     }
 
@@ -73,5 +76,4 @@ contract RSCConversion is Ownable {
     require(DIP.transferFrom(DIP_Pool, msg.sender, dipAmount));
     emit Conversion(_rscAmount, dipAmount, bonus);
   }
-
 }
