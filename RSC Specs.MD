@@ -1,3 +1,39 @@
+## Running tests
+* Note: If you get a permission error on any .js file, make sure to `chmod +x filename.js`
+* `yarn ganache`
+* `yarn test`
+
+Current status: 1 failing test: Contract DipTgo: `Error: DipTge contract constructor expected 8 arguments, received 9`
+
+## Compiling
+* `yarn compile`
+  * run `yarn clean` after each compile command
+
+## Current status: compiles 100% 
+* Warnings in the zeppelin-solidty contracts
+
+## Solidity Coverage
+* `yarn coverage`
+
+```
+------------------------------|----------|----------|----------|----------|----------------|
+File                          |  % Stmts | % Branch |  % Funcs |  % Lines |Uncovered Lines |
+------------------------------|----------|----------|----------|----------|----------------|
+ protocol/                    |        0 |        0 |        0 |        0 |                |
+  TokenStake.sol              |        0 |        0 |        0 |        0 |... 53,55,56,61 |
+ rscconversion/               |        0 |        0 |        0 |        0 |                |
+  RSCConversion.sol           |        0 |        0 |        0 |        0 |... 68,69,73,74 |
+ token/                       |    85.71 |      100 |    83.33 |    88.89 |                |
+  DipToken.sol                |    85.71 |      100 |    83.33 |    88.89 |             59 |
+ tokensale/                   |    97.75 |    80.26 |    92.86 |    97.78 |                |
+  DipTge.sol                  |    97.47 |    78.57 |    92.31 |     97.5 |          69,71 |
+  DipTgeInterface.sol         |      100 |      100 |      100 |      100 |                |
+  DipWhitelistedCrowdsale.sol |      100 |      100 |      100 |      100 |                |
+------------------------------|----------|----------|----------|----------|----------------|
+All files                     |    76.86 |    69.15 |    66.67 |    73.85 |                |
+------------------------------|----------|----------|----------|----------|----------------|
+```
+
 # Deploy Contracts
 RSC Contract is https://etherscan.io/token/0x9b0f6a5a667cb92af0cd15dbe90e764e32f69e77#readContract
 DIP TGE Contract is https://etherscan.io/address/0x00391d08B3E68E476a774aDA379258264EB74485
