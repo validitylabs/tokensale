@@ -34,11 +34,11 @@ All files                     |    76.86 |    69.15 |    66.67 |    73.85 |     
 ------------------------------|----------|----------|----------|----------|----------------|
 ```
 
-# Deploy Contracts
-RSC Contract is https://etherscan.io/token/0x9b0f6a5a667cb92af0cd15dbe90e764e32f69e77#readContract
-DIP TGE Contract is https://etherscan.io/address/0x00391d08B3E68E476a774aDA379258264EB74485
-DIP Token Contract is https://etherscan.io/token/0xc719d010b63e5bbf2c0551872cd5316ed26acd83
-RSC TotalSupply is 319810709968 (https://etherscan.io/token/0x9b0f6a5a667cb92af0cd15dbe90e764e32f69e77#readContract)
+# Deployed Contracts
+* RSC Contract is https://etherscan.io/token/0x9b0f6a5a667cb92af0cd15dbe90e764e32f69e77#readContract
+* DIP TGE Contract is https://etherscan.io/address/0x00391d08B3E68E476a774aDA379258264EB74485
+* DIP Token Contract is https://etherscan.io/token/0xc719d010b63e5bbf2c0551872cd5316ed26acd83
+* RSC TotalSupply is 319810709968 (https://etherscan.io/token/0x9b0f6a5a667cb92af0cd15dbe90e764e32f69e77#readContract)
 
 # Specs of RSCConversion.sol
 * RSC Holders need to be whitelisted. Whitelisted means “allowance > 0” in the contributorData mapping in the TGE Contract.
